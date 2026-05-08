@@ -1,0 +1,16 @@
+{
+  "name": "nitj-erp-utils",
+  "version": "1.0.0",
+  "description": "An accessibility add-on to aid people and add more features on NITJ ERP website",
+  "author": "Opensource@NITJ",
+  "scripts": {
+    "build": "npm run build:chromium && npm run build:firefox",
+    "build:chromium": "vite build",
+    "build:firefox": "vite build --mode firefox"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.4.0",
+    "typescript": "latest",
+    "vite": "^8.0.11"
+  }
+}
