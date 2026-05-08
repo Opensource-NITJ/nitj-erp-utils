@@ -39,8 +39,7 @@
 |     | Feature                           | Description                                                                |
 | --- | --------------------------------- | -------------------------------------------------------------------------- |
 | 📊  | **Attendance Deficit Calculator** | Instantly see how many classes you need to attend (or can skip) to hit 75% |
-| 🌑  | **Dark Mode Enhancements**        | Refined dark-mode styles across all ERP pages                              |
-| ⚡  | **Lightweight & Fast**            | Zero heavy dependencies — loads in milliseconds                            |
+| ⚡  | **Lightweight & Fast**            | Zero heavy dependencies - loads in milliseconds                            |
 | 🦊  | **Cross-Browser**                 | Works on Chrome, Brave, Opera, and Firefox                                 |
 
 <br />
@@ -133,7 +132,7 @@ This is an **unofficial** utility extension. It is not affiliated with, endorsed
 
 ## Contributing
 
-Found a bug or want to add a feature? Open an issue or submit a pull request — contributions are welcome.
+Found a bug or want to add a feature? Open an issue or submit a pull request! Contributions are welcome :\)
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/your-feature`
