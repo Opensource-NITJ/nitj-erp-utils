@@ -3,7 +3,7 @@ module.exports = {
 
   name: "NITJ ERP Utils",
 
-  version: "1.0",
+  version: "1.1",
 
   description:
     "An accessibility add-on to aid people and add more features on NITJ ERP website",
