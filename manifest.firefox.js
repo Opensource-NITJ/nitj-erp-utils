@@ -13,6 +13,9 @@ module.exports = {
   browser_specific_settings: {
     gecko: {
       id: "nitj-erp-utils@opensourcenitj.com",
+      data_collection_permissions: {
+        required: ["none"],
+      },
     },
   },
 
