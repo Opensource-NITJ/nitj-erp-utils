@@ -102,6 +102,16 @@ npm run build
 2. Click **Load Temporary Add-on**
 3. Select `dist/firefox/manifest.json`
 
+For **Flatpak browsers such as Zen**, load a ZIP of the build instead. The file picker may grant access only to `manifest.json`, leaving the extension's scripts and icons inaccessible.
+
+```bash
+# From the project root, after building
+cd dist/firefox
+zip -r ../nitj-erp-utils-firefox.zip .
+```
+
+Select `dist/nitj-erp-utils-firefox.zip` from the project root in **Load Temporary Add-on**, then refresh the ERP tab.
+
 <br />
 
 ---
