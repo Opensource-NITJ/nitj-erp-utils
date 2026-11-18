@@ -106,6 +106,28 @@ npm run build
 
 ---
 
+## Building from Source
+
+### Requirements
+
+- **OS:** Linux, macOS, or Windows
+- **Node.js:** v20 or later ([download](https://nodejs.org/))
+- **npm:** v10 or later (included with Node.js)
+
+### Steps
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Build the Firefox extension
+npm run build:firefox
+```
+
+The built extension will be in `dist/firefox/`.
+
+To build for Chromium-based browsers instead, run `npm run build:chromium`. To build both, run `npm run build`.
+
 ## Development
 
 ```bash
