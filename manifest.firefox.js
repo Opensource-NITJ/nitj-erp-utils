@@ -57,4 +57,11 @@ module.exports = {
       run_at: "document_idle",
     },
   ],
+
+  web_accessible_resources: [
+    {
+      resources: ["captcha.png"],
+      matches: ["https://v1.nitj.ac.in/*"],
+    },
+  ],
 };
