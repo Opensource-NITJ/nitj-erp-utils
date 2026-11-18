@@ -169,23 +169,42 @@
         let tooltip = "";
 
         if (cls) {
-          const allP = cls.every((c) => c.status === "P");
-          const allA = cls.every((c) => c.status === "A");
-          cellClass += allP ? " nitj-p" : allA ? " nitj-a" : " nitj-mixed";
+          const total = cls.length;
+          const pCount = cls.filter((c) => c.status === "P").length;
+          const ratio = pCount / total;
+
+          // Intensity shading: GitHub contribution graph style
+          if (ratio === 1) {
+            cellClass += " nitj-heat-p4"; // 100% attended (e.g. 4/4, 1/1) - deep green
+          } else if (ratio >= 0.6) {
+            cellClass += " nitj-heat-p3"; // 60-99% attended (e.g. 3/4) - lighter green
+          } else if (ratio >= 0.4) {
+            cellClass += " nitj-heat-mid"; // 40-59% attended (e.g. 2/4, 1/2) - amber / mixed
+          } else if (ratio > 0) {
+            cellClass += " nitj-heat-a3"; // 1-39% attended (e.g. 1/4) - light red
+          } else {
+            cellClass += " nitj-heat-a4"; // 0% attended (e.g. 0/4, 0/1) - deep red
+          }
+
           dot =
             cls.length > 1
               ? `<span class="nitj-multi">${cls.length}</span>`
+              : "";
+
+          const summaryRow =
+            cls.length > 1
+              ? `<div class="nitj-tt-summary">${pCount}/${total} attended (${Math.round(ratio * 100)}%)</div>`
               : "";
 
           const rows = cls
             .map(
               (c) => `
             <span class="nitj-tt-row">
-              <span class="nitj-tt-topic">${c.topic || c.type}</span>
+              <span class="nitj-tt-topic ${c.status === "P" ? "nitj-tt-p" : c.status === "A" ? "nitj-tt-a" : ""}">${c.topic || c.type}</span>
             </span>`,
             )
             .join("");
-          tooltip = `<div class="nitj-tooltip">${rows}</div>`;
+          tooltip = `<div class="nitj-tooltip">${summaryRow}${rows}</div>`;
         }
 
         html += `<div class="${cellClass}">${d}${dot}${tooltip}</div>`;
@@ -234,16 +253,17 @@
         }
         .nitj-view-toggle:hover { background: var(--bg-hover, #1C2E44); }
         .nitj-cal-stats {
-          display: flex; gap: 16px; flex-wrap: wrap;
+          display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
           font-size: 12px; color: var(--text-secondary, #94A8C0); margin-bottom: 14px;
         }
         .nitj-cal-stats b { color: var(--text-primary, #E2EAF4); }
-        .nitj-legend { display: flex; align-items: center; gap: 5px; }
-        .nitj-dot-p, .nitj-dot-a {
-          width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        .nitj-legend-scale {
+          display: flex; align-items: center; gap: 4px;
+          margin-left: auto; font-size: 11px;
         }
-        .nitj-dot-p { background: var(--success, #10B981); }
-        .nitj-dot-a { background: var(--danger, #EF4444); }
+        .nitj-scale-box {
+          width: 12px; height: 12px; border-radius: 2px; display: inline-block;
+        }
         .nitj-cal-months {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -274,13 +294,22 @@
         .nitj-cal-day {
           color: var(--text-secondary, #94A8C0);
           background: var(--bg-input, #0F1E30);
+          transition: transform 0.1s ease;
         }
-        .nitj-p     { background: rgba(16,185,129,0.18) !important; color: var(--success, #10B981) !important; font-weight: bold; }
-        .nitj-a     { background: rgba(239,68,68,0.18)  !important; color: var(--danger,  #EF4444) !important; font-weight: bold; }
-        .nitj-mixed { background: rgba(245,158,11,0.16) !important; color: var(--warning, #F59E0B) !important; font-weight: bold; }
+        .nitj-cal-day:hover {
+          z-index: 10;
+        }
+        .nitj-heat-p4 { background: rgba(16,185,129,0.45) !important; border: 1px solid rgba(16,185,129,0.55) !important; color: #ECFDF5 !important; font-weight: bold; }
+        .nitj-heat-p3 { background: rgba(16,185,129,0.22) !important; border: 1px solid rgba(16,185,129,0.32) !important; color: #A7F3D0 !important; font-weight: bold; }
+        .nitj-heat-mid { background: rgba(245,158,11,0.24) !important; border: 1px solid rgba(245,158,11,0.38) !important; color: #FDE68A !important; font-weight: bold; }
+        .nitj-heat-a3 { background: rgba(239,68,68,0.22)  !important; border: 1px solid rgba(239,68,68,0.32)  !important; color: #FECACA !important; font-weight: bold; }
+        .nitj-heat-a4 { background: rgba(239,68,68,0.45)  !important; border: 1px solid rgba(239,68,68,0.55)  !important; color: #FEE2E2 !important; font-weight: bold; }
+        .nitj-p     { background: rgba(16,185,129,0.45) !important; color: #ECFDF5 !important; font-weight: bold; }
+        .nitj-a     { background: rgba(239,68,68,0.45)  !important; color: #FEE2E2 !important; font-weight: bold; }
+        .nitj-mixed { background: rgba(245,158,11,0.24) !important; color: #FDE68A !important; font-weight: bold; }
         .nitj-multi {
           position: absolute; top: 1px; right: 2px;
-          font-size: 8px; opacity: 0.7;
+          font-size: 8px; opacity: 0.75; line-height: 1;
         }
 
         /* ── Tooltip ─────────────────────────────────────────── */
@@ -303,9 +332,15 @@ background: #0d1b2a;
           gap: 5px;
         }
         .nitj-cal-day:hover .nitj-tooltip { display: flex; }
+        .nitj-tt-summary {
+          font-size: 11px; font-weight: 600; color: #E2EAF4;
+          padding-bottom: 4px; border-bottom: 1px solid #1F3352; margin-bottom: 3px;
+        }
         .nitj-tt-row { display: flex; flex-direction: column; gap: 2px; }
         .nitj-tt-row + .nitj-tt-row { border-top: 1px solid #1F3352; padding-top: 5px; }
         .nitj-tt-topic { font-size: 11px; color: #E2EAF4; line-height: 1.4; }
+        .nitj-tt-topic.nitj-tt-p { color: var(--success, #10B981) !important; font-weight: 500; }
+        .nitj-tt-topic.nitj-tt-a { color: var(--danger, #EF4444) !important; font-weight: 500; }
 
         #nitj-view-controls { margin: 16px 0 10px; }
         #nitj-view-controls, #nitj-att-calendar { color: var(--text-primary, #E2EAF4); }
@@ -343,8 +378,15 @@ background: #0d1b2a;
             <span>Total classes: <b>${delivered}</b></span>
             <span>Attended: <b>${attended}</b></span>
             <span>Absent: <b>${delivered - attended}</b></span>
-            <span class="nitj-legend"><span class="nitj-dot-p"></span>Present</span>
-            <span class="nitj-legend"><span class="nitj-dot-a"></span>Absent</span>
+            <div class="nitj-legend-scale" title="Attendance Intensity Scale">
+              <span>0%</span>
+              <span class="nitj-scale-box nitj-heat-a4" title="0% attended"></span>
+              <span class="nitj-scale-box nitj-heat-a3" title="~25% attended"></span>
+              <span class="nitj-scale-box nitj-heat-mid" title="50% attended"></span>
+              <span class="nitj-scale-box nitj-heat-p3" title="~75% attended"></span>
+              <span class="nitj-scale-box nitj-heat-p4" title="100% attended"></span>
+              <span>100%</span>
+            </div>
           </div>
           <div class="nitj-cal-months">
             ${renderedMonths.map((m) => buildMonth(m.year, m.month, m.days)).join("")}
