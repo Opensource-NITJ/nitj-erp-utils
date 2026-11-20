@@ -1,4 +1,5 @@
 import { calculateStreaks } from "../core/attendance.mjs";
+import { readAttendanceLectures } from "../core/attendance-details.mjs";
 
 (function () {
   const STORAGE_KEY = "nitj-att-calendar-view";
@@ -62,14 +63,6 @@ import { calculateStreaks } from "../core/attendance.mjs";
     saveView(view);
   }
 
-  function getClassStart(text) {
-    const match = text.match(/\b(0?[1-9]|1[0-2]):([0-5]\d)\s*([AP]M)\b/i);
-    if (!match) return null;
-    const [, hour, minute, period] = match;
-    return (Number(hour) % 12) * 60 + Number(minute) +
-      (period.toUpperCase() === "PM" ? 720 : 0);
-  }
-
   function injectCalendar() {
     if (document.getElementById("nitj-att-calendar")) return true;
 
@@ -77,42 +70,8 @@ import { calculateStreaks } from "../core/attendance.mjs";
     if (!panel) return false;
 
     // ── 1. SCRAPE DATA ───────────────────────────────────────────
-    const detailTable =
-      panel.querySelector("table.table-bordered.table-striped") ||
-      panel.querySelector("table.table-striped") ||
-      panel.querySelectorAll("table")[1];
-    if (!detailTable) return false;
-
-    const headers = [...detailTable.querySelectorAll("thead tr th")];
-    const cells = [...detailTable.querySelectorAll("tbody tr:first-child td")];
-    const topicCells = [
-      ...detailTable.querySelectorAll("tbody tr:nth-child(2) td"),
-    ];
-
-    const classes = [];
-    for (let i = 1; i < headers.length - 3; i++) {
-      const hdr = headers[i];
-      const dateText =
-        hdr.querySelector(".label-primary")?.textContent.trim() ?? "";
-      const typeText = hdr.querySelector("b")?.textContent.trim() ?? "";
-      const cell = cells[i - 1];
-      const status = cell?.querySelector(".label-success")
-        ? "P"
-        : cell?.querySelector(".label-danger")
-          ? "A"
-          : "?";
-      const topic =
-        topicCells[i - 1]?.textContent.replace(/\s+/g, " ").trim() ?? "";
-      if (dateText) {
-        classes.push({
-          date: parseDate(dateText),
-          startTime: getClassStart(hdr.innerText),
-          type: typeText,
-          status,
-          topic,
-        });
-      }
-    }
+    const classes = readAttendanceLectures(panel);
+    if (!classes) return false;
 
     const attended =
       parseInt(
@@ -130,22 +89,18 @@ import { calculateStreaks } from "../core/attendance.mjs";
     if (!anchor) return false;
 
     // ── 2. GROUP BY MONTH ────────────────────────────────────────
-    function parseDate(str) {
-      const [d, m, y] = str.split("-");
-      return new Date(`${m} ${d} ${y}`);
-    }
-
     const months = {};
     classes.forEach((c) => {
-      const dt = c.date;
-      const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+      const year = c.date.getUTCFullYear();
+      const month = c.date.getUTCMonth();
+      const key = `${year}-${month}`;
       if (!months[key])
         months[key] = {
-          year: dt.getFullYear(),
-          month: dt.getMonth(),
+          year,
+          month,
           days: {},
         };
-      const day = dt.getDate();
+      const day = c.date.getUTCDate();
       if (!months[key].days[day]) months[key].days[day] = [];
       months[key].days[day].push(c);
     });
