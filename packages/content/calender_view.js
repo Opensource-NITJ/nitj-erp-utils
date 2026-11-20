@@ -1,3 +1,7 @@
+import { calculateStreaks } from "../core/attendance.mjs";
+import { readAttendanceLectures } from "../core/attendance-details.mjs";
+import { countTopicWords } from "../core/attendance-topics.mjs";
+
 (function () {
   const STORAGE_KEY = "nitj-att-calendar-view";
 
@@ -60,6 +64,30 @@
     saveView(view);
   }
 
+  function fillTopicCloud(cloud, lectures) {
+    const words = countTopicWords(lectures).slice(0, 24);
+    const message = cloud.querySelector("p");
+    const list = cloud.querySelector("ul");
+    if (!words.length) {
+      message.textContent = "No lecture topics are available for this calendar.";
+      return;
+    }
+
+    message.textContent = "Larger words appear more often in lecture topics.";
+    const maxCount = words[0][1];
+    for (const [index, [word, count]] of words.entries()) {
+      const item = document.createElement("li");
+      item.textContent = word;
+      item.style.fontSize = `${1 + 1.25 * (count - 1) / Math.max(1, maxCount - 1)}rem`;
+      item.style.setProperty("--nitj-topic-delay", `${Math.min(index * 14, 112)}ms`);
+
+      const frequency = document.createElement("span");
+      frequency.textContent = `${count}×`;
+      item.append(" ", frequency);
+      list.append(item);
+    }
+  }
+
   function injectCalendar() {
     if (document.getElementById("nitj-att-calendar")) return true;
 
@@ -67,35 +95,8 @@
     if (!panel) return false;
 
     // ── 1. SCRAPE DATA ───────────────────────────────────────────
-    const detailTable =
-      panel.querySelector("table.table-bordered.table-striped") ||
-      panel.querySelector("table.table-striped") ||
-      panel.querySelectorAll("table")[1];
-    if (!detailTable) return false;
-
-    const headers = [...detailTable.querySelectorAll("thead tr th")];
-    const cells = [...detailTable.querySelectorAll("tbody tr:first-child td")];
-    const topicCells = [
-      ...detailTable.querySelectorAll("tbody tr:nth-child(2) td"),
-    ];
-
-    const classes = [];
-    for (let i = 1; i < headers.length - 3; i++) {
-      const hdr = headers[i];
-      const dateText =
-        hdr.querySelector(".label-primary")?.textContent.trim() ?? "";
-      const typeText = hdr.querySelector("b")?.textContent.trim() ?? "";
-      const cell = cells[i - 1];
-      const status = cell?.querySelector(".label-success")
-        ? "P"
-        : cell?.querySelector(".label-danger")
-          ? "A"
-          : "?";
-      const topic =
-        topicCells[i - 1]?.textContent.replace(/\s+/g, " ").trim() ?? "";
-      if (dateText)
-        classes.push({ date: dateText, type: typeText, status, topic });
-    }
+    const classes = readAttendanceLectures(panel);
+    if (!classes) return false;
 
     const attended =
       parseInt(
@@ -113,22 +114,18 @@
     if (!anchor) return false;
 
     // ── 2. GROUP BY MONTH ────────────────────────────────────────
-    function parseDate(str) {
-      const [d, m, y] = str.split("-");
-      return new Date(`${m} ${d} ${y}`);
-    }
-
     const months = {};
     classes.forEach((c) => {
-      const dt = parseDate(c.date);
-      const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+      const year = c.date.getUTCFullYear();
+      const month = c.date.getUTCMonth();
+      const key = `${year}-${month}`;
       if (!months[key])
         months[key] = {
-          year: dt.getFullYear(),
-          month: dt.getMonth(),
+          year,
+          month,
           days: {},
         };
-      const day = dt.getDate();
+      const day = c.date.getUTCDate();
       if (!months[key].days[day]) months[key].days[day] = [];
       months[key].days[day].push(c);
     });
@@ -167,28 +164,52 @@
         let cellClass = "nitj-cal-day";
         let dot = "";
         let tooltip = "";
+        let streakTitle = "";
 
         if (cls) {
-          const allP = cls.every((c) => c.status === "P");
-          const allA = cls.every((c) => c.status === "A");
-          cellClass += allP ? " nitj-p" : allA ? " nitj-a" : " nitj-mixed";
+          if (cls.some((entry) => longestClasses.has(entry))) {
+            cellClass += " nitj-longest-streak";
+            streakTitle = ` title="Part of the latest longest attendance streak (${streaks.longest} ${streaks.longest === 1 ? "class" : "classes"})"`;
+          }
+          const total = cls.length;
+          const pCount = cls.filter((c) => c.status === "P").length;
+          const ratio = pCount / total;
+
+          // Intensity shading: GitHub contribution graph style
+          if (ratio === 1) {
+            cellClass += " nitj-heat-p4"; // 100% attended (e.g. 4/4, 1/1) - deep green
+          } else if (ratio >= 0.6) {
+            cellClass += " nitj-heat-p3"; // 60-99% attended (e.g. 3/4) - lighter green
+          } else if (ratio >= 0.4) {
+            cellClass += " nitj-heat-mid"; // 40-59% attended (e.g. 2/4, 1/2) - amber / mixed
+          } else if (ratio > 0) {
+            cellClass += " nitj-heat-a3"; // 1-39% attended (e.g. 1/4) - light red
+          } else {
+            cellClass += " nitj-heat-a4"; // 0% attended (e.g. 0/4, 0/1) - deep red
+          }
+
           dot =
             cls.length > 1
               ? `<span class="nitj-multi">${cls.length}</span>`
+              : "";
+
+          const summaryRow =
+            cls.length > 1
+              ? `<div class="nitj-tt-summary">${pCount}/${total} attended (${Math.round(ratio * 100)}%)</div>`
               : "";
 
           const rows = cls
             .map(
               (c) => `
             <span class="nitj-tt-row">
-              <span class="nitj-tt-topic">${c.topic || c.type}</span>
+              <span class="nitj-tt-topic ${c.status === "P" ? "nitj-tt-p" : c.status === "A" ? "nitj-tt-a" : ""}">${c.topic || c.type}</span>
             </span>`,
             )
             .join("");
-          tooltip = `<div class="nitj-tooltip">${rows}</div>`;
+          tooltip = `<div class="nitj-tooltip">${summaryRow}${rows}</div>`;
         }
 
-        html += `<div class="${cellClass}">${d}${dot}${tooltip}</div>`;
+        html += `<div class="${cellClass}"${streakTitle}>${d}${dot}${tooltip}</div>`;
       }
 
       html += `</div></div>`;
@@ -234,16 +255,86 @@
         }
         .nitj-view-toggle:hover { background: var(--bg-hover, #1C2E44); }
         .nitj-cal-stats {
-          display: flex; gap: 16px; flex-wrap: wrap;
+          display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
           font-size: 12px; color: var(--text-secondary, #94A8C0); margin-bottom: 14px;
         }
         .nitj-cal-stats b { color: var(--text-primary, #E2EAF4); }
-        .nitj-legend { display: flex; align-items: center; gap: 5px; }
-        .nitj-dot-p, .nitj-dot-a {
-          width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        .nitj-legend-scale {
+          display: flex; align-items: center; gap: 4px;
+          margin-left: auto; font-size: 11px;
         }
-        .nitj-dot-p { background: var(--success, #10B981); }
-        .nitj-dot-a { background: var(--danger, #EF4444); }
+        .nitj-scale-box {
+          width: 12px; height: 12px; border-radius: 2px; display: inline-block;
+        }
+        .nitj-topic-cloud {
+          margin-bottom: 16px;
+          padding: 0 12px;
+          border: 1px solid var(--border, #1F3352);
+          border-radius: 8px;
+          background: var(--bg-raised, #162436);
+        }
+        .nitj-topic-cloud summary {
+          padding: 10px 0;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .nitj-topic-cloud summary:focus-visible {
+          outline: 2px solid var(--accent-blue, #3B82F6);
+          outline-offset: 3px;
+        }
+        .nitj-topic-cloud p {
+          margin: 0 0 10px;
+          color: var(--text-secondary, #94A8C0);
+          font-size: 13px;
+        }
+        .nitj-topic-cloud ul {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          justify-content: center;
+          gap: 12px 18px;
+          max-width: 42rem;
+          margin: 8px auto 16px;
+          padding: 0;
+          list-style: none;
+        }
+        .nitj-topic-cloud ul:empty { display: none; }
+        .nitj-topic-cloud li {
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          line-height: 1.15;
+          font-weight: 600;
+        }
+        .nitj-topic-cloud li:nth-child(3n + 1) {
+          color: color-mix(in srgb, var(--text-primary, #E2EAF4) 58%, var(--accent-blue, #3B82F6));
+        }
+        .nitj-topic-cloud li:nth-child(3n + 2) {
+          color: color-mix(in srgb, var(--text-primary, #E2EAF4) 58%, #45B8CB);
+        }
+        .nitj-topic-cloud li span {
+          color: var(--text-secondary, #94A8C0);
+          font-size: 12px;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .nitj-topic-cloud[open] li {
+            animation: nitj-topic-reveal 300ms cubic-bezier(0.22, 1, 0.36, 1) var(--nitj-topic-delay) backwards;
+          }
+          @keyframes nitj-topic-reveal {
+            from { opacity: 0.4; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nitj-topic-cloud[open] li { animation: nitj-topic-fade 180ms ease-out; }
+          @keyframes nitj-topic-fade {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+          }
+        }
         .nitj-cal-months {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -274,13 +365,23 @@
         .nitj-cal-day {
           color: var(--text-secondary, #94A8C0);
           background: var(--bg-input, #0F1E30);
+          transition: transform 0.1s ease;
         }
-        .nitj-p     { background: rgba(16,185,129,0.18) !important; color: var(--success, #10B981) !important; font-weight: bold; }
-        .nitj-a     { background: rgba(239,68,68,0.18)  !important; color: var(--danger,  #EF4444) !important; font-weight: bold; }
-        .nitj-mixed { background: rgba(245,158,11,0.16) !important; color: var(--warning, #F59E0B) !important; font-weight: bold; }
+        .nitj-cal-day:hover {
+          z-index: 10;
+        }
+        .nitj-heat-p4 { background: rgba(16,185,129,0.45) !important; border: 1px solid rgba(16,185,129,0.55) !important; color: #ECFDF5 !important; font-weight: bold; }
+        .nitj-heat-p3 { background: rgba(16,185,129,0.22) !important; border: 1px solid rgba(16,185,129,0.32) !important; color: #A7F3D0 !important; font-weight: bold; }
+        .nitj-heat-mid { background: rgba(245,158,11,0.24) !important; border: 1px solid rgba(245,158,11,0.38) !important; color: #FDE68A !important; font-weight: bold; }
+        .nitj-heat-a3 { background: rgba(239,68,68,0.22)  !important; border: 1px solid rgba(239,68,68,0.32)  !important; color: #FECACA !important; font-weight: bold; }
+        .nitj-heat-a4 { background: rgba(239,68,68,0.45)  !important; border: 1px solid rgba(239,68,68,0.55)  !important; color: #FEE2E2 !important; font-weight: bold; }
+        .nitj-cal-day.nitj-longest-streak { border-color: #D4AF37 !important; }
+        .nitj-p     { background: rgba(16,185,129,0.45) !important; color: #ECFDF5 !important; font-weight: bold; }
+        .nitj-a     { background: rgba(239,68,68,0.45)  !important; color: #FEE2E2 !important; font-weight: bold; }
+        .nitj-mixed { background: rgba(245,158,11,0.24) !important; color: #FDE68A !important; font-weight: bold; }
         .nitj-multi {
           position: absolute; top: 1px; right: 2px;
-          font-size: 8px; opacity: 0.7;
+          font-size: 8px; opacity: 0.75; line-height: 1;
         }
 
         /* ── Tooltip ─────────────────────────────────────────── */
@@ -303,12 +404,90 @@ background: #0d1b2a;
           gap: 5px;
         }
         .nitj-cal-day:hover .nitj-tooltip { display: flex; }
+        .nitj-tt-summary {
+          font-size: 11px; font-weight: 600; color: #E2EAF4;
+          padding-bottom: 4px; border-bottom: 1px solid #1F3352; margin-bottom: 3px;
+        }
         .nitj-tt-row { display: flex; flex-direction: column; gap: 2px; }
         .nitj-tt-row + .nitj-tt-row { border-top: 1px solid #1F3352; padding-top: 5px; }
         .nitj-tt-topic { font-size: 11px; color: #E2EAF4; line-height: 1.4; }
+        .nitj-tt-topic.nitj-tt-p { color: var(--success, #10B981) !important; font-weight: 500; }
+        .nitj-tt-topic.nitj-tt-a { color: var(--danger, #EF4444) !important; font-weight: 500; }
 
         #nitj-view-controls { margin: 16px 0 10px; }
         #nitj-view-controls, #nitj-att-calendar { color: var(--text-primary, #E2EAF4); }
+
+        .nitj-streaks {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 156px), 1fr));
+          gap: 8px;
+          max-width: 384px;
+          margin: 0;
+        }
+        .nitj-streak {
+          --nitj-streak-tone: var(--success, #087751);
+          position: relative;
+          min-width: 0;
+          padding: 10px 12px 10px 50px;
+          border: 1px solid var(--border, #d6e1ec);
+          border-radius: 10px;
+          background: var(--bg-raised, #f8fafc);
+          color: var(--text-primary, #182b43);
+          overflow-wrap: anywhere;
+        }
+        .nitj-streak--longest { --nitj-streak-tone: var(--accent-blue, #245fa5); }
+        .nitj-streak--empty { --nitj-streak-tone: var(--text-secondary, #4c6178); }
+        .nitj-streak dt {
+          color: var(--text-secondary, #4c6178);
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .nitj-streak dd {
+          margin: 2px 0 0;
+          font-size: 18px;
+          font-variant-numeric: tabular-nums;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+        .nitj-streak--empty dd {
+          color: var(--text-secondary, #4c6178);
+          font-size: 14px;
+        }
+        .nitj-streak-icon {
+          position: absolute;
+          top: 50%;
+          inset-inline-start: 11px;
+          display: grid;
+          place-items: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          background: color-mix(in srgb, var(--nitj-streak-tone) 14%, transparent);
+          color: var(--nitj-streak-tone);
+          transform: translateY(-50%);
+        }
+        .nitj-streak-icon::before {
+          grid-area: 1 / 1;
+          width: 6px;
+          height: 11px;
+          border: solid currentColor;
+          border-width: 0 2px 2px 0;
+          transform: translateY(-1px) rotate(45deg);
+          content: "";
+        }
+        .nitj-streak--longest .nitj-streak-icon::before {
+          width: 8px;
+          height: 8px;
+          border-width: 2px 2px 0 0;
+          transform: translateY(-3px) rotate(-45deg);
+        }
+        .nitj-streak--longest .nitj-streak-icon::after {
+          grid-area: 1 / 1;
+          width: 2px;
+          height: 12px;
+          background: currentColor;
+          content: "";
+        }
       `;
       document.head.appendChild(style);
     }
@@ -325,6 +504,17 @@ background: #0d1b2a;
       )
       .sort((a, b) => a.year - b.year || a.month - b.month);
 
+    const classDays = classes.some(({ date }) => Number.isNaN(date.getTime()))
+      ? []
+      : renderedMonths.flatMap(({ days }) => Object.values(days));
+    const streaks = calculateStreaks(classDays);
+    const longestClasses = new Set(streaks.longestClasses);
+    const streakCard = (label, count, variant) => `
+      <div class="nitj-streak nitj-streak--${variant}${count === null ? " nitj-streak--empty" : ""}">
+        <dt><span class="nitj-streak-icon" aria-hidden="true"></span>${label}</dt>
+        <dd>${count === null ? "Unavailable" : `${count} ${count === 1 ? "class" : "classes"}`}</dd>
+      </div>`;
+
     const shellHTML = `
       <div id="nitj-calendar-shell">
         <div id="nitj-view-controls">
@@ -337,15 +527,31 @@ background: #0d1b2a;
               Normal view
             </button>
           </div>
+          <dl class="nitj-streaks">
+            ${streakCard("Current Streak", streaks.current, "current")}
+            ${streakCard("Longest Streak", streaks.longest, "longest")}
+          </dl>
         </div>
         <div id="nitj-att-calendar" hidden>
           <div class="nitj-cal-stats">
             <span>Total classes: <b>${delivered}</b></span>
             <span>Attended: <b>${attended}</b></span>
             <span>Absent: <b>${delivered - attended}</b></span>
-            <span class="nitj-legend"><span class="nitj-dot-p"></span>Present</span>
-            <span class="nitj-legend"><span class="nitj-dot-a"></span>Absent</span>
+            <div class="nitj-legend-scale" title="Attendance Intensity Scale">
+              <span>0%</span>
+              <span class="nitj-scale-box nitj-heat-a4" title="0% attended"></span>
+              <span class="nitj-scale-box nitj-heat-a3" title="~25% attended"></span>
+              <span class="nitj-scale-box nitj-heat-mid" title="50% attended"></span>
+              <span class="nitj-scale-box nitj-heat-p3" title="~75% attended"></span>
+              <span class="nitj-scale-box nitj-heat-p4" title="100% attended"></span>
+              <span>100%</span>
+            </div>
           </div>
+          <details class="nitj-topic-cloud">
+            <summary>Topic word cloud</summary>
+            <p></p>
+            <ul role="list"></ul>
+          </details>
           <div class="nitj-cal-months">
             ${renderedMonths.map((m) => buildMonth(m.year, m.month, m.days)).join("")}
           </div>
@@ -353,6 +559,7 @@ background: #0d1b2a;
       </div>`;
 
     anchor.insertAdjacentHTML("afterend", shellHTML);
+    fillTopicCloud(document.querySelector("#nitj-att-calendar .nitj-topic-cloud"), classDays.flat());
 
     const toggle = document.getElementById("nitj-view-toggle");
     if (toggle && !toggle.dataset.bound) {

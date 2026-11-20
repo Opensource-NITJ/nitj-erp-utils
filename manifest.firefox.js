@@ -13,6 +13,9 @@ module.exports = {
   browser_specific_settings: {
     gecko: {
       id: "nitj-erp-utils@opensourcenitj.com",
+      data_collection_permissions: {
+        required: ["none"],
+      },
     },
   },
 
@@ -52,6 +55,13 @@ module.exports = {
       js: ["packages/content/calender_view.js"],
 
       run_at: "document_idle",
+    },
+  ],
+
+  web_accessible_resources: [
+    {
+      resources: ["captcha.png"],
+      matches: ["https://v1.nitj.ac.in/*"],
     },
   ],
 };

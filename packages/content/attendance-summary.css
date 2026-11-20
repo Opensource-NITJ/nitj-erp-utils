@@ -1,0 +1,105 @@
+.nitj-attendance-summary {
+  margin-bottom: 16px;
+  border: 1px solid var(--border, #d5dfeb);
+  border-radius: 8px;
+  background: var(--bg-raised, #f5f8fc);
+  color: var(--text-primary, #182538);
+}
+
+.nitj-attendance-summary > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nitj-attendance-summary > summary::-webkit-details-marker { display: none; }
+.nitj-attendance-summary > summary::after {
+  width: 7px;
+  height: 7px;
+  margin-inline-start: auto;
+  border: solid var(--text-secondary, #485b73);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+  content: "";
+}
+
+.nitj-attendance-summary[open] > summary::after { transform: translateY(2px) rotate(225deg); }
+.nitj-attendance-summary > summary:focus-visible { outline: 2px solid var(--accent-blue, #2361b6); outline-offset: 2px; }
+.nitj-attendance-summary > summary:hover { background: var(--bg-hover, #edf3fa); }
+.nitj-summary-count {
+  color: var(--text-secondary, #485b73);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.nitj-summary-body { padding: 0 16px 14px; }
+.nitj-attendance-summary:not([open]) > .nitj-summary-body { display: none; }
+
+.nitj-attendance-summary dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px 12px;
+  margin: 12px 0 0;
+}
+
+.nitj-attendance-summary dt {
+  color: var(--text-secondary, #485b73);
+  font-size: 11px;
+}
+
+.nitj-attendance-summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nitj-attendance-boxplot-figure {
+  max-width: 700px;
+  margin: 0;
+}
+
+.nitj-attendance-boxplot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.nitj-attendance-boxplot-box {
+  fill: var(--accent-glow, #dceafe);
+  stroke: var(--accent-blue, #2361b6);
+}
+
+.nitj-attendance-boxplot-whiskers {
+  fill: none;
+  stroke: var(--accent-blue, #2361b6);
+  stroke-width: 1.5;
+}
+
+.nitj-attendance-boxplot-median {
+  stroke: var(--text-primary, #182538);
+  stroke-width: 2;
+}
+
+.nitj-attendance-boxplot-outlier {
+  fill: var(--warning, #9d5500);
+}
+
+.nitj-attendance-boxplot-axis {
+  stroke: var(--border-strong, #9badc2);
+}
+
+.nitj-attendance-boxplot text {
+  fill: var(--text-secondary, #485b73);
+  font-size: 12px;
+}
+
+.nitj-attendance-boxplot-figure figcaption {
+  color: var(--text-secondary, #485b73);
+  font-size: 11px;
+}

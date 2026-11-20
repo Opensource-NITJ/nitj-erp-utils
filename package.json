@@ -4,6 +4,7 @@
   "description": "An accessibility add-on to aid people and add more features on NITJ ERP website",
   "author": "Opensource@NITJ",
   "scripts": {
+    "test": "node --test",
     "dev": "vite",
     "dev:firefox": "vite --mode firefox",
     "build": "npm run build:chromium && npm run build:firefox",

@@ -9,7 +9,12 @@ module.exports = defineConfig(({ mode }) => {
     : require("./manifest.chromium.js");
 
   return {
-    plugins: [crx({ manifest })],
+    plugins: [
+      crx({
+        manifest,
+        browser: isFirefox ? "firefox" : "chrome",
+      }),
+    ],
 
     build: {
       outDir: isFirefox ? "dist/firefox" : "dist/chromium",

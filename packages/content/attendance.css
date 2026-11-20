@@ -1,0 +1,424 @@
+.nitj-att-container {
+  width: 100% !important;
+  max-width: none !important;
+  padding-inline: 24px;
+}
+
+.nitj-att-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) fit-content(960px);
+  align-items: start;
+  gap: 24px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.nitj-att-layout::before,
+.nitj-att-layout::after { display: none !important; }
+
+.nitj-att-sidebar,
+.nitj-att-report {
+  float: none !important;
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 0;
+  padding: 0;
+}
+
+.nitj-att-sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.nitj-att-sidebar > * { margin: 0 !important; }
+
+.nitj-att-report {
+  align-self: start;
+}
+
+.nitj-att-report > .panel { margin: 0; }
+
+.nitj-att-fit-content {
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.nitj-att-report .nitj-att-fit-content {
+  float: none !important;
+  width: 100% !important;
+}
+
+.nitj-att-layout table {
+  width: 100% !important;
+}
+
+.nitj-att-layout th,
+.nitj-att-layout td {
+  overflow-wrap: anywhere;
+  white-space: normal !important;
+}
+
+.nitj-att-course-table th,
+.nitj-att-course-table td { font-family: inherit !important; }
+.nitj-att-course-table th {
+  padding-inline: 6px;
+  overflow-wrap: normal;
+  word-break: normal;
+  font-size: 11px !important;
+}
+
+.nitj-att-report .nitj-attendance-chart-trigger {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  gap: 4px;
+  padding: 4px;
+  white-space: normal;
+}
+
+.nitj-att-sidebar .panel-body { padding: 12px; }
+.nitj-att-sidebar .table { margin-bottom: 0; }
+.nitj-att-sidebar .table td { padding: 8px; font-size: 12px; }
+
+.nitj-att-surface {
+  min-width: 0;
+  margin: 0 0 16px;
+  border: 1px solid var(--border, #d6e1ec);
+  border-radius: 10px;
+  background: var(--bg-raised, #f8fafc);
+  color: var(--text-primary, #182b43);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.nitj-att-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.nitj-att-target,
+.nitj-att-empty,
+.nitj-att-counts,
+.nitj-projection {
+  color: var(--text-secondary, #4c6178);
+  font-size: 13px;
+}
+
+.nitj-overall {
+  padding: 16px;
+}
+
+.nitj-overall-body,
+.nitj-att-counts,
+.nitj-planner-fields,
+.nitj-planner-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.nitj-overall-body {
+  display: grid;
+  margin-top: 12px;
+}
+
+.nitj-overall-details {
+  min-width: 0;
+}
+
+.nitj-overall-value {
+  display: block;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.nitj-att-progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 7px;
+  margin: 9px 0 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-hover, #e1eaf2);
+}
+
+.nitj-att-progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.nitj-att-progress::-webkit-progress-value {
+  border-radius: 8px;
+  background: var(--success, #16835c);
+}
+
+.nitj-att-progress::-moz-progress-bar {
+  border-radius: 8px;
+  background: var(--success, #16835c);
+}
+
+.nitj-att-counts {
+  gap: 4px 12px;
+}
+
+.nitj-att-counts strong {
+  color: var(--text-primary, #182b43);
+  font-variant-numeric: tabular-nums;
+}
+
+.nitj-attended { --nitj-tile-color: var(--success, #16835c); }
+.nitj-missed { --nitj-tile-color: var(--danger, #bf3b42); }
+
+.nitj-att-counts > span::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-end: 5px;
+  border-radius: 2px;
+  background: var(--nitj-tile-color);
+  content: "";
+  vertical-align: 1px;
+}
+
+.nitj-waffle {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.nitj-waffle > span {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--nitj-tile-color);
+}
+
+.nitj-att-planner > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  border-radius: inherit;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nitj-att-planner > summary::-webkit-details-marker { display: none; }
+
+.nitj-att-planner > summary::after {
+  width: 7px;
+  height: 7px;
+  margin-inline-start: auto;
+  border: solid var(--text-secondary, #4c6178);
+  border-width: 0 2px 2px 0;
+  transform: translateY(-2px) rotate(45deg);
+  content: "";
+}
+
+.nitj-att-planner[open] > summary::after {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.nitj-att-planner > summary:hover {
+  background: var(--bg-hover, #edf3fa);
+}
+
+.nitj-att-planner > summary:focus-visible,
+.nitj-att-planner .form-control:focus-visible {
+  outline: 2px solid var(--accent-blue, #2563a7) !important;
+  outline-offset: 2px;
+}
+
+.nitj-planner-body {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border, #d6e1ec);
+}
+
+.nitj-planner-fields {
+  display: grid;
+  align-items: end;
+  gap: 10px 12px;
+}
+
+.nitj-planner-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.nitj-planner-fields label {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+  color: var(--text-secondary, #4c6178);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nitj-planner-targets {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nitj-planner-targets legend {
+  width: auto;
+  margin: 0 0 6px;
+  padding: 0;
+  border: 0;
+  color: var(--text-secondary, #4c6178);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nitj-target-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nitj-target-options > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border, #d6e1ec);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nitj-target-options > label:has(:checked) {
+  border-color: var(--accent-blue, #2563a7);
+  background: var(--bg-hover, #edf3fa);
+  color: var(--text-primary, #182b43);
+}
+
+.nitj-target-options input { margin: 0; accent-color: var(--accent-blue, #2563a7); }
+.nitj-target-options > label:has(:focus-visible) { outline: 2px solid var(--accent-blue, #2563a7); outline-offset: 2px; }
+.nitj-planner-fields .nitj-custom-target { margin-top: 8px; }
+.nitj-att-layout [hidden] { display: none !important; }
+
+.nitj-att-planner .form-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.nitj-att-planner select {
+  text-overflow: ellipsis;
+}
+
+.nitj-planner-result {
+  min-width: 0;
+  gap: 6px 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d6e1ec);
+  border-radius: 8px;
+  background: var(--bg-panel, #fff);
+  color: inherit;
+  font-size: inherit;
+}
+
+.nitj-projection strong {
+  display: block;
+  color: var(--nitj-result-color);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.nitj-planner-result[data-status="meets-target"] {
+  --nitj-result-color: var(--success, #087751);
+}
+
+.nitj-planner-result[data-status="below-target"] {
+  --nitj-result-color: var(--warning, #935000);
+}
+
+.nitj-planner-message {
+  flex: 1 1 230px;
+}
+
+.nitj-att-empty { margin: 8px 0 0; }
+.nitj-att-planner > .nitj-att-empty { margin: 0; padding: 0 16px 14px; }
+
+@media (max-width: 1050px) {
+  .nitj-att-layout { grid-template-columns: 260px fit-content(960px); gap: 16px; }
+  .nitj-att-container { padding-inline: 16px; }
+  .nitj-att-report .panel-body { padding: 12px; }
+  .nitj-att-report th,
+  .nitj-att-report td { padding-inline: 4px; }
+}
+
+@media (max-width: 1100px) {
+  .nitj-att-layout { grid-template-columns: minmax(0, 1fr); }
+  .nitj-att-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .nitj-att-sidebar > .nitj-att-planner { grid-column: 1 / -1; }
+  .nitj-waffle { max-width: 220px; }
+}
+
+@media (max-width: 520px) {
+  .nitj-att-container { padding-inline: 12px; }
+  .nitj-att-sidebar { grid-template-columns: minmax(0, 1fr); }
+  .nitj-waffle { max-width: none; }
+  .nitj-att-layout .nitj-attendance-boxplot text { font-size: 20px; }
+}
+
+@media (max-width: 1000px) {
+  .nitj-att-course-table,
+  .nitj-att-course-table tbody,
+  .nitj-att-course-table tfoot { display: block; }
+  .nitj-att-course-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .nitj-att-course-table tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 12px;
+    border: 1px solid var(--border, #d6e1ec);
+    border-radius: 8px;
+  }
+  .nitj-att-course-table td {
+    min-width: 0;
+    padding: 10px 8px;
+    border: 0 !important;
+    font-size: 13px !important;
+  }
+  .nitj-att-course-table td:nth-child(2) { grid-column: span 2; }
+  .nitj-att-course-table td[colspan] { grid-column: 1 / -1; }
+  .nitj-att-course-table td::before {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-secondary, #4c6178);
+    content: attr(data-label);
+    font: 11px/1.35 Arial, sans-serif;
+  }
+  .nitj-att-report .nitj-attendance-chart-trigger { min-height: 44px; padding: 6px; font-size: 12px; }
+}
