@@ -31,19 +31,24 @@
 
 ## What It Does
 
-**NITJ ERP Utils** is a lightweight browser extension that layers useful functionality on top of the NITJ ERP: surfacing attendance deficits, polishing the interface with dark mode support, and eliminating the manual math students shouldn't have to do.
+**NITJ ERP Utils** is a lightweight browser extension that layers useful functionality on top of the NITJ ERP: making attendance trends easy to spot, polishing the interface with dark mode, and doing the what-if math students shouldn't have to do.
 
 <br />
 
 ## Features
 
-|     | Feature                           | Description                                                                                            |
-| --- | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 🌙  | **Dark Mode**                     | System-aware dark theme for comfortable night-time browsing                                            |
-| 📅  | **Interactive Calendar**          | Visual calendar with day/month navigation, showing attendance per day and quick drill-down for details |
-| 📊  | **Attendance Deficit Calculator** | Instantly see how many classes you need to attend (or can skip) to hit 75%                             |
-| ⚡  | **Lightweight & Fast**            | Zero heavy dependencies - loads in milliseconds                                                        |
-| 🦊  | **Cross-Browser**                 | Works on Chrome, Brave, Opera, and Firefox                                                             |
+|     | Feature                           | Description                                                                                           |
+| --- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 🌙   | **Dark Mode**                     | Dark theme for comfortable night-time browsing                                                        |
+| 📊   | **Attendance Dashboard**          | See overall attendance in a 10×10 waffle chart and compare subjects in a collapsible box plot summary |
+| 🎯   | **What-If Planner**               | Pick 72%, 75%, or a custom target and see how attending or missing classes changes your percentage    |
+| 🧮   | **Attendance Deficit Calculator** | Instantly see how many classes you need to attend (or can skip) at your selected target               |
+| 📈   | **Weekly Trends**                 | Expand a subject's bar chart to see week start dates, a trendline, and how attendance is changing     |
+| 📅   | **Interactive Calendar**          | See daily attendance in a color-coded calendar and hover over a day for lecture details               |
+| 🏅   | **Attendance Streaks**            | Track current and longest streaks, with gold borders on the latest longest run in the calendar        |
+| 💬   | **Topic Word Cloud**              | Open an animated word cloud in the calendar to see which lecture topics come up most often            |
+| ⚡   | **Lightweight & Fast**            | Attendance tools run in your browser with data already in the ERP                                     |
+| 🦊   | **Cross-Browser**                 | Works on Chrome, Brave, Opera, Firefox, and Zen                                                       |
 
 <br />
 
@@ -53,13 +58,17 @@
 
 ![Dark Mode Preview](./assets/dark-mode-preview.png)
 
-> Interactive calendar for viewing attendance by day and month.
-
-![Interactive Calendar Preview](./assets/attendance-calendar-preview.png)
-
-> Attendance insights injected directly into the ERP report page.
+> Attendance dashboard with an overall waffle chart, a subject box plot, and the What-If Planner.
 
 ![Attendance Preview](./assets/attendance-preview.png)
+
+> Expanded weekly bar chart with week start dates and a dashed trendline.
+
+![Weekly Attendance Preview](./assets/attendance-weekly-preview.png)
+
+> Interactive calendar with the topic word cloud open and the latest longest streak outlined in gold.
+
+![Interactive Calendar Preview](./assets/attendance-calendar-preview.png)
 
 <br />
 
