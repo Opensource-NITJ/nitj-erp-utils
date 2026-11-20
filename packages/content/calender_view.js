@@ -1,5 +1,6 @@
 import { calculateStreaks } from "../core/attendance.mjs";
 import { readAttendanceLectures } from "../core/attendance-details.mjs";
+import { countTopicWords } from "../core/attendance-topics.mjs";
 
 (function () {
   const STORAGE_KEY = "nitj-att-calendar-view";
@@ -61,6 +62,30 @@ import { readAttendanceLectures } from "../core/attendance-details.mjs";
     toggle.textContent = isCalendar ? "Normal view" : "Calendar view";
     toggle.setAttribute("aria-pressed", isCalendar ? "true" : "false");
     saveView(view);
+  }
+
+  function fillTopicCloud(cloud, lectures) {
+    const words = countTopicWords(lectures).slice(0, 24);
+    const message = cloud.querySelector("p");
+    const list = cloud.querySelector("ul");
+    if (!words.length) {
+      message.textContent = "No lecture topics are available for this calendar.";
+      return;
+    }
+
+    message.textContent = "Larger words appear more often in lecture topics.";
+    const maxCount = words[0][1];
+    for (const [index, [word, count]] of words.entries()) {
+      const item = document.createElement("li");
+      item.textContent = word;
+      item.style.fontSize = `${1 + 1.25 * (count - 1) / Math.max(1, maxCount - 1)}rem`;
+      item.style.setProperty("--nitj-topic-delay", `${Math.min(index * 14, 112)}ms`);
+
+      const frequency = document.createElement("span");
+      frequency.textContent = `${count}×`;
+      item.append(" ", frequency);
+      list.append(item);
+    }
   }
 
   function injectCalendar() {
@@ -139,8 +164,13 @@ import { readAttendanceLectures } from "../core/attendance-details.mjs";
         let cellClass = "nitj-cal-day";
         let dot = "";
         let tooltip = "";
+        let streakTitle = "";
 
         if (cls) {
+          if (cls.some((entry) => longestClasses.has(entry))) {
+            cellClass += " nitj-longest-streak";
+            streakTitle = ` title="Part of the latest longest attendance streak (${streaks.longest} ${streaks.longest === 1 ? "class" : "classes"})"`;
+          }
           const total = cls.length;
           const pCount = cls.filter((c) => c.status === "P").length;
           const ratio = pCount / total;
@@ -179,7 +209,7 @@ import { readAttendanceLectures } from "../core/attendance-details.mjs";
           tooltip = `<div class="nitj-tooltip">${summaryRow}${rows}</div>`;
         }
 
-        html += `<div class="${cellClass}">${d}${dot}${tooltip}</div>`;
+        html += `<div class="${cellClass}"${streakTitle}>${d}${dot}${tooltip}</div>`;
       }
 
       html += `</div></div>`;
@@ -236,6 +266,75 @@ import { readAttendanceLectures } from "../core/attendance-details.mjs";
         .nitj-scale-box {
           width: 12px; height: 12px; border-radius: 2px; display: inline-block;
         }
+        .nitj-topic-cloud {
+          margin-bottom: 16px;
+          padding: 0 12px;
+          border: 1px solid var(--border, #1F3352);
+          border-radius: 8px;
+          background: var(--bg-raised, #162436);
+        }
+        .nitj-topic-cloud summary {
+          padding: 10px 0;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .nitj-topic-cloud summary:focus-visible {
+          outline: 2px solid var(--accent-blue, #3B82F6);
+          outline-offset: 3px;
+        }
+        .nitj-topic-cloud p {
+          margin: 0 0 10px;
+          color: var(--text-secondary, #94A8C0);
+          font-size: 13px;
+        }
+        .nitj-topic-cloud ul {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          justify-content: center;
+          gap: 12px 18px;
+          max-width: 42rem;
+          margin: 8px auto 16px;
+          padding: 0;
+          list-style: none;
+        }
+        .nitj-topic-cloud ul:empty { display: none; }
+        .nitj-topic-cloud li {
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+          line-height: 1.15;
+          font-weight: 600;
+        }
+        .nitj-topic-cloud li:nth-child(3n + 1) {
+          color: color-mix(in srgb, var(--text-primary, #E2EAF4) 58%, var(--accent-blue, #3B82F6));
+        }
+        .nitj-topic-cloud li:nth-child(3n + 2) {
+          color: color-mix(in srgb, var(--text-primary, #E2EAF4) 58%, #45B8CB);
+        }
+        .nitj-topic-cloud li span {
+          color: var(--text-secondary, #94A8C0);
+          font-size: 12px;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .nitj-topic-cloud[open] li {
+            animation: nitj-topic-reveal 300ms cubic-bezier(0.22, 1, 0.36, 1) var(--nitj-topic-delay) backwards;
+          }
+          @keyframes nitj-topic-reveal {
+            from { opacity: 0.4; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nitj-topic-cloud[open] li { animation: nitj-topic-fade 180ms ease-out; }
+          @keyframes nitj-topic-fade {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+          }
+        }
         .nitj-cal-months {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -276,6 +375,7 @@ import { readAttendanceLectures } from "../core/attendance-details.mjs";
         .nitj-heat-mid { background: rgba(245,158,11,0.24) !important; border: 1px solid rgba(245,158,11,0.38) !important; color: #FDE68A !important; font-weight: bold; }
         .nitj-heat-a3 { background: rgba(239,68,68,0.22)  !important; border: 1px solid rgba(239,68,68,0.32)  !important; color: #FECACA !important; font-weight: bold; }
         .nitj-heat-a4 { background: rgba(239,68,68,0.45)  !important; border: 1px solid rgba(239,68,68,0.55)  !important; color: #FEE2E2 !important; font-weight: bold; }
+        .nitj-cal-day.nitj-longest-streak { border-color: #D4AF37 !important; }
         .nitj-p     { background: rgba(16,185,129,0.45) !important; color: #ECFDF5 !important; font-weight: bold; }
         .nitj-a     { background: rgba(239,68,68,0.45)  !important; color: #FEE2E2 !important; font-weight: bold; }
         .nitj-mixed { background: rgba(245,158,11,0.24) !important; color: #FDE68A !important; font-weight: bold; }
@@ -408,6 +508,7 @@ background: #0d1b2a;
       ? []
       : renderedMonths.flatMap(({ days }) => Object.values(days));
     const streaks = calculateStreaks(classDays);
+    const longestClasses = new Set(streaks.longestClasses);
     const streakCard = (label, count, variant) => `
       <div class="nitj-streak nitj-streak--${variant}${count === null ? " nitj-streak--empty" : ""}">
         <dt><span class="nitj-streak-icon" aria-hidden="true"></span>${label}</dt>
@@ -446,6 +547,11 @@ background: #0d1b2a;
               <span>100%</span>
             </div>
           </div>
+          <details class="nitj-topic-cloud">
+            <summary>Topic word cloud</summary>
+            <p></p>
+            <ul role="list"></ul>
+          </details>
           <div class="nitj-cal-months">
             ${renderedMonths.map((m) => buildMonth(m.year, m.month, m.days)).join("")}
           </div>
@@ -453,6 +559,7 @@ background: #0d1b2a;
       </div>`;
 
     anchor.insertAdjacentHTML("afterend", shellHTML);
+    fillTopicCloud(document.querySelector("#nitj-att-calendar .nitj-topic-cloud"), classDays.flat());
 
     const toggle = document.getElementById("nitj-view-toggle");
     if (toggle && !toggle.dataset.bound) {

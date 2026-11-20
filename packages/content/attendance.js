@@ -11,20 +11,20 @@ import "./attendance-summary.css";
 import attendanceCss from "./attendance.css?inline";
 
 (function () {
-  function injectCalculator(anchor, subjects) {
+  function createCalculator(subjects, updateDeficits) {
     const calculator = document.createElement("details");
     calculator.className = "nitj-att-surface nitj-att-planner";
+    calculator.open = true;
     calculator.innerHTML = `
       <summary>
-        <span class="nitj-att-title">What-If Planner</span>
+        <span class="nitj-att-title">Planner</span>
         <span class="nitj-att-target">${TARGET_PERCENT}% target</span>
       </summary>`;
-    anchor.before(calculator);
 
     if (!subjects.length) {
       calculator.insertAdjacentHTML("beforeend", `
         <p class="nitj-att-empty">Subject attendance data is unavailable.</p>`);
-      return;
+      return calculator;
     }
 
     calculator.insertAdjacentHTML("beforeend", `
@@ -34,6 +34,18 @@ import attendanceCss from "./attendance.css?inline";
             Subject
             <select class="form-control input-sm"></select>
           </label>
+          <fieldset class="nitj-planner-targets">
+            <legend>Attendance target</legend>
+            <div class="nitj-target-options">
+              <label><input type="radio" name="nitj-planner-target" value="72"><span>72%</span></label>
+              <label><input type="radio" name="nitj-planner-target" value="75" checked><span>75%</span></label>
+              <label><input type="radio" name="nitj-planner-target" value="custom"><span>Custom</span></label>
+            </div>
+            <label class="nitj-custom-target" hidden>
+              Custom target (%)
+              <input class="form-control input-sm" type="number" min="0.01" max="100" step="0.01" value="75" required disabled>
+            </label>
+          </fieldset>
           <div class="nitj-planner-counts">
             <label>
               Classes to attend
@@ -52,7 +64,10 @@ import attendanceCss from "./attendance.css?inline";
       </div>`);
 
     const select = calculator.querySelector("select");
-    const inputs = [...calculator.querySelectorAll("input")];
+    const inputs = [...calculator.querySelectorAll(".nitj-planner-counts input")];
+    const customTarget = calculator.querySelector(".nitj-custom-target");
+    const targetInput = customTarget.querySelector("input");
+    const targetLabel = calculator.querySelector(".nitj-att-target");
     const output = calculator.querySelector("output");
     const projection = output.querySelector(".nitj-projection");
     const projectedValue = projection.querySelector("strong");
@@ -69,6 +84,18 @@ import attendanceCss from "./attendance.css?inline";
     }
 
     function update() {
+      const selectedTarget = calculator.querySelector('input[name="nitj-planner-target"]:checked').value;
+      const isCustom = selectedTarget === "custom";
+      customTarget.hidden = !isCustom;
+      targetInput.disabled = !isCustom;
+      const target = isCustom ? targetInput.valueAsNumber : Number(selectedTarget);
+      targetLabel.textContent = Number.isFinite(target) ? `${target}% target` : "Custom target";
+      if (isCustom && !targetInput.validity.valid) {
+        updateDeficits(null);
+        showResult("Enter a target from 0.01% to 100%, with up to two decimal places.");
+        return;
+      }
+      updateDeficits(target);
       if (inputs.some((input) => !input.validity.valid)) {
         showResult("Enter whole numbers of classes, zero or more.");
         return;
@@ -79,7 +106,7 @@ import attendanceCss from "./attendance.css?inline";
         input.value === "" ? 0 : input.valueAsNumber,
       );
       const scenario = calculateScenario(
-        attended, delivered, futureAttended, futureMissed,
+        attended, delivered, futureAttended, futureMissed, target,
       );
       if (!scenario) {
         showResult("Enter smaller class counts.");
@@ -92,22 +119,27 @@ import attendanceCss from "./attendance.css?inline";
 
       const { deficit } = scenario;
       const rounded = scenario.percentage.toFixed(2);
-      const percentage = deficit < 0 && Number(rounded) >= TARGET_PERCENT
-        ? `<${TARGET_PERCENT}%`
+      const percentage = deficit < 0 && Number(rounded) >= target
+        ? `<${target}%`
         : `${rounded}%`;
+      if (deficit === null) {
+        showResult("A 100% target cannot be reached after a missed class.", percentage, "below-target");
+        return;
+      }
       const count = Math.abs(deficit);
       const classes = `${count} more ${count === 1 ? "class" : "classes"}`;
-      let guidance = `You meet the ${TARGET_PERCENT}% target. Attend the next class to stay there.`;
+      let guidance = `You meet the ${target}% target. Attend the next class to stay there.`;
       if (deficit < 0) {
-        guidance = `Attend ${classes} to reach ${TARGET_PERCENT}%.`;
+        guidance = `Attend ${classes} to reach ${target}%.`;
       } else if (deficit > 0) {
-        guidance = `You can miss ${classes} and stay at or above ${TARGET_PERCENT}%.`;
+        guidance = `You can miss ${classes} and stay at or above ${target}%.`;
       }
       showResult(guidance, percentage, deficit < 0 ? "below-target" : "meets-target");
     }
 
     calculator.addEventListener("input", update);
     update();
+    return calculator;
   }
 
   function createOverallCard(totals) {
@@ -142,20 +174,24 @@ import attendanceCss from "./attendance.css?inline";
   }
 
   function renderSummary(table, percentages) {
-    const summary = document.createElement("section");
+    const summary = document.createElement("details");
     summary.className = "nitj-attendance-summary";
+    summary.open = true;
 
-    const heading = document.createElement("h2");
+    const heading = document.createElement("summary");
     heading.id = "nitj-attendance-summary-heading";
-    heading.textContent = "Attendance summary";
-    summary.setAttribute("aria-labelledby", heading.id);
+    heading.textContent = "Summary";
 
-    const count = document.createElement("p");
+    const count = document.createElement("span");
+    count.className = "nitj-summary-count";
     const stats = summarizeAttendance(percentages);
     count.textContent = stats
       ? `${percentages.length} ${percentages.length === 1 ? "course" : "courses"}`
       : "No courses with recorded attendance.";
-    summary.append(heading, count);
+    heading.append(count);
+    const body = document.createElement("div");
+    body.className = "nitj-summary-body";
+    summary.append(heading, body);
 
     if (stats) {
       const formatter = new Intl.NumberFormat(undefined, {
@@ -182,12 +218,61 @@ import attendanceCss from "./attendance.css?inline";
         list.appendChild(metric);
       }
 
-      summary.append(list, renderAttendanceBoxPlot(stats, formatter));
+      body.append(renderAttendanceBoxPlot(stats, formatter), list);
     }
 
-    const caption = table.createCaption();
-    caption.classList.add("nitj-attendance-summary-caption");
-    caption.prepend(summary);
+    const wrapper = table.closest(".table-responsive");
+    (wrapper && table.closest(".nitj-att-report").contains(wrapper) ? wrapper : table).before(summary);
+  }
+
+  function arrangeAttendancePage(studentTable, table, overall, planner) {
+    const reportPanel = table.closest(".panel");
+    const container = table.closest(".container") ?? document.body;
+    const studentPanel = [...container.querySelectorAll(".panel")].find((panel) =>
+      !panel.contains(table) && /^welcome\b/i.test(panel.querySelector(".panel-heading")?.textContent.trim() ?? ""),
+    ) ?? studentTable.closest(".panel");
+    let sidebar = studentPanel?.parentElement;
+    let report = reportPanel?.parentElement;
+    let layout;
+
+    if (studentPanel && reportPanel && studentPanel !== reportPanel &&
+        sidebar !== report && sidebar.parentElement === report.parentElement &&
+        !sidebar.parentElement.closest("form")) {
+      layout = sidebar.parentElement;
+    } else {
+      const form = table.closest("form");
+      const wrapper = table.closest(".table-responsive");
+      const reportBlock = form ?? (reportPanel && !reportPanel.contains(studentTable) ? reportPanel
+        : wrapper && !wrapper.contains(studentTable) ? wrapper : table);
+      const studentBlock = studentPanel && !studentPanel.contains(table) ? studentPanel : studentTable;
+      const studentControls = [...studentBlock.querySelectorAll("input, select, textarea, button")]
+        .map((control) => [control, control.form]);
+      layout = document.createElement("div");
+      sidebar = document.createElement("div");
+      report = document.createElement("div");
+      reportBlock.before(layout);
+      layout.append(sidebar, report);
+      sidebar.append(studentBlock);
+      report.append(reportBlock);
+      for (const [control, originalForm] of studentControls) {
+        if (originalForm && control.form !== originalForm) {
+          originalForm.id ||= "nitj-att-erp-form";
+          control.setAttribute("form", originalForm.id);
+        }
+      }
+    }
+
+    layout.classList.add("nitj-att-layout");
+    sidebar.classList.add("nitj-att-sidebar");
+    report.classList.add("nitj-att-report");
+    sidebar.append(overall, planner);
+    layout.closest(".container")?.classList.add("nitj-att-container");
+
+    for (const content of [studentTable, table, layout]) {
+      for (let node = content.parentElement; node && node !== container && node !== document.body; node = node.parentElement) {
+        node.classList.add("nitj-att-fit-content");
+      }
+    }
   }
 
   function run() {
@@ -214,6 +299,8 @@ import attendanceCss from "./attendance.css?inline";
     const subjectTotals = [];
     const percentages = [];
     const courses = [];
+    const deficitBadges = [];
+    const deficitHeader = header.cells[header.cells.length - 2];
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const cols = row.querySelectorAll("td");
@@ -249,7 +336,6 @@ import attendanceCss from "./attendance.css?inline";
           }
         }
       }
-      const value = deficit ?? 0;
       const td = document.createElement("td");
       td.setAttribute("align", "center");
       td.style.color = "#000000";
@@ -257,35 +343,41 @@ import attendanceCss from "./attendance.css?inline";
       td.style.fontSize = "12px";
       td.style.verticalAlign = "middle";
       const badge = document.createElement("span");
-      badge.classList.add("label");
       badge.style.fontSize = "12px";
-      if (value > 0) {
-        badge.classList.add("label-success");
-        badge.textContent = value;
-      } else if (value === 0) {
-        badge.classList.add("label-default");
-        badge.textContent = "0";
-      } else {
-        badge.classList.add("label-danger");
-        badge.textContent = value;
-      }
+      deficitBadges.push({ badge, attended, delivered, wholeCounts });
       td.appendChild(badge);
       row.insertBefore(td, detailCell);
     }
+    table.setAttribute("role", "table");
+    table.classList.add("nitj-att-course-table");
+    const columnLabels = [...header.cells].map((cell) => cell.textContent.trim());
+    for (const row of rows) {
+      row.setAttribute("role", "row");
+      for (const [index, cell] of [...row.cells].entries()) {
+        cell.setAttribute("role", cell.tagName === "TH" ? "columnheader" : "cell");
+        if (row.cells.length === columnLabels.length) cell.dataset.label = columnLabels[index];
+      }
+    }
+    function updateDeficits(target) {
+      const label = target === null ? "Attendance Deficit" : `Attendance Deficit (${target}%)`;
+      deficitHeader.textContent = label;
+      for (const { badge, attended, delivered, wholeCounts } of deficitBadges) {
+        const value = wholeCounts && target !== null ? calculateDeficit(attended, delivered, target) : null;
+        badge.className = `label ${value === null || value === 0 ? "label-default" : value > 0 ? "label-success" : "label-danger"}`;
+        badge.textContent = value ?? "—";
+        badge.title = value !== null ? `${target}% attendance target`
+          : target === 100 && wholeCounts && attended < delivered ? "A 100% target cannot be reached after a missed class."
+            : target === null ? "Enter a valid attendance target in the planner." : "Attendance calculation unavailable.";
+        badge.parentElement.dataset.label = label;
+      }
+    }
+    updateDeficits(TARGET_PERCENT);
     const style = document.createElement("style");
     style.textContent = attendanceCss;
     document.head.append(style);
 
-    // Keep the planner outside the ERP form and the table's scroll area.
-    const anchor = table.closest("form") ?? table.closest(".table-responsive") ?? table;
     const overall = createOverallCard(calculateAttendanceWaffle(subjectTotals));
-    const studentPanel = studentTable.closest(".panel");
-    if (studentPanel && !studentPanel.contains(table)) {
-      studentPanel.after(overall);
-    } else {
-      anchor.before(overall);
-    }
-    injectCalculator(anchor, subjects);
+    arrangeAttendancePage(studentTable, table, overall, createCalculator(subjects, updateDeficits));
     renderSummary(table, percentages);
     void loadAttendanceHistories(courses);
   }

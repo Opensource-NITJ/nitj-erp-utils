@@ -40,7 +40,7 @@ function findDetailUrl(cell) {
 
 function renderChart(weeks, trend, label, expanded = false) {
   const { width, height, left, right, top, bottom } = expanded
-    ? { width: 520, height: 232, left: 52, right: 14, top: 12, bottom: 30 }
+    ? { width: 520, height: 262, left: 52, right: 14, top: 12, bottom: 60 }
     : { width: 76, height: 24, left: 2, right: 2, top: 2, bottom: 2 };
   const firstWeek = weeks[0].week;
   const span = weeks.at(-1).week - firstWeek;
@@ -77,11 +77,15 @@ function renderChart(weeks, trend, label, expanded = false) {
       chart.appendChild(tick);
     }
 
-    for (const elapsed of span === 0 ? [0] : [0, span]) {
+    for (let elapsed = 0; elapsed <= span; elapsed++) {
+      const x = xFor(elapsed);
+      const y = baseline + 14;
       const tick = document.createElementNS(SVG_NS, "text");
-      tick.setAttribute("x", xFor(elapsed));
-      tick.setAttribute("y", height - 8);
-      tick.setAttribute("text-anchor", span === 0 ? "middle" : elapsed === 0 ? "start" : "end");
+      tick.classList.add("nitj-attendance-week-label");
+      tick.setAttribute("x", x);
+      tick.setAttribute("y", y);
+      tick.setAttribute("text-anchor", "end");
+      tick.setAttribute("transform", `rotate(-45 ${x} ${y})`);
       tick.textContent = weekFormat.format(getAttendanceWeekStart(firstWeek + elapsed));
       chart.appendChild(tick);
     }

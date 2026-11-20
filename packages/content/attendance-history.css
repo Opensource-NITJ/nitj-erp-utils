@@ -118,3 +118,7 @@
   fill: var(--text-secondary, #485b73);
   font-size: 13px;
 }
+
+.nitj-attendance-chart .nitj-attendance-week-label {
+  font-size: 10px;
+}

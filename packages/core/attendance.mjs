@@ -1,8 +1,6 @@
-const TARGET_NUMERATOR = 3;
-const TARGET_DENOMINATOR = 4;
-const MAX_CLASSES = Math.floor(Number.MAX_SAFE_INTEGER / TARGET_DENOMINATOR);
+const MAX_CLASSES = Math.floor(Number.MAX_SAFE_INTEGER / 4);
 
-export const TARGET_PERCENT = (100 * TARGET_NUMERATOR) / TARGET_DENOMINATOR;
+export const TARGET_PERCENT = 75;
 
 function isClassCount(value) {
   return Number.isSafeInteger(value) && value >= 0 && value <= MAX_CLASSES;
@@ -12,25 +10,38 @@ function hasValidTotals(attended, delivered) {
   return isClassCount(attended) && isClassCount(delivered) && attended <= delivered;
 }
 
-export function calculateDeficit(attended, delivered) {
-  if (!hasValidTotals(attended, delivered)) return null;
-
-  // At 3/4, a present class adds one to the margin and a missed class costs three.
-  const margin = TARGET_DENOMINATOR * attended - TARGET_NUMERATOR * delivered;
-  return margin < 0 ? margin : Math.floor(margin / TARGET_NUMERATOR);
+function getTargetUnits(percent) {
+  if (!Number.isFinite(percent) || percent <= 0 || percent > 100) return null;
+  const units = Math.round(percent * 100);
+  return units > 0 && units / 100 === percent ? units : null;
 }
 
-export function calculateScenario(attended, delivered, futureAttended, futureMissed) {
+export function calculateDeficit(attended, delivered, targetPercent = TARGET_PERCENT) {
+  const units = getTargetUnits(targetPercent);
+  if (!hasValidTotals(attended, delivered) || units === null) return null;
+
+  // Integer hundredths keep target boundaries exact, including fractional percentages.
+  const target = BigInt(units);
+  const margin = 10000n * BigInt(attended) - target * BigInt(delivered);
+  if (margin < 0n && target === 10000n) return null;
+  const needed = 10000n - target;
+  const value = Number(margin < 0n ? -((-margin + needed - 1n) / needed) : margin / target);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+export function calculateScenario(attended, delivered, futureAttended, futureMissed, targetPercent = TARGET_PERCENT) {
   if (
     !hasValidTotals(attended, delivered) ||
     !isClassCount(futureAttended) ||
-    !isClassCount(futureMissed)
+    !isClassCount(futureMissed) ||
+    getTargetUnits(targetPercent) === null
   ) return null;
 
   const projectedAttended = attended + futureAttended;
   const projectedDelivered = delivered + futureAttended + futureMissed;
-  const deficit = calculateDeficit(projectedAttended, projectedDelivered);
-  if (deficit === null) return null;
+  if (!hasValidTotals(projectedAttended, projectedDelivered)) return null;
+  const deficit = calculateDeficit(projectedAttended, projectedDelivered, targetPercent);
+  if (deficit === null && targetPercent !== 100) return null;
 
   return {
     percentage: projectedDelivered ? (projectedAttended / projectedDelivered) * 100 : null,
@@ -68,6 +79,8 @@ export function calculateStreaks(classDays) {
   let current = 0;
   let longest = null;
   let latestStatus;
+  let currentClasses = [];
+  let longestClasses = [];
 
   for (const day of classDays) {
     // shortcut: use ERP column order for incomplete start times, revisit if explicit ordering becomes available.
@@ -75,8 +88,15 @@ export function calculateStreaks(classDays) {
       ? [...day].sort((a, b) => a.startTime - b.startTime)
       : day;
 
-    for (const { status } of ordered) {
+    for (const entry of ordered) {
+      const { status } = entry;
       current = status === "P" ? current + 1 : 0;
+      if (status === "P") {
+        currentClasses.push(entry);
+        if (current >= (longest ?? 0)) longestClasses = currentClasses;
+      } else {
+        currentClasses = [];
+      }
       if (status === "P" || status === "A") {
         longest = Math.max(longest ?? 0, current);
       }
@@ -87,5 +107,6 @@ export function calculateStreaks(classDays) {
   return {
     current: latestStatus === "P" || latestStatus === "A" ? current : null,
     longest,
+    longestClasses,
   };
 }

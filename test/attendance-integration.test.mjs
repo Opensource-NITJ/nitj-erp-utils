@@ -4,6 +4,7 @@ import { readAttendanceLectures } from "../packages/core/attendance-details.mjs"
 import { calculateStreaks } from "../packages/core/attendance.mjs";
 import { getWeeklyAttendance, getAttendanceTrend } from "../packages/core/attendance-trends.mjs";
 import { summarizeAttendance } from "../packages/core/attendance-statistics.mjs";
+import { countTopicWords } from "../packages/core/attendance-topics.mjs";
 
 function lecturePanel(entries) {
   const headers = [{ querySelector: () => null }, ...entries.map(({ date, time }) => ({
@@ -21,11 +22,25 @@ function lecturePanel(entries) {
     querySelectorAll: (selector) => ({
       "thead tr th": headers,
       "tbody tr:first-child td": cells,
-      "tbody tr:nth-child(2) td": [],
+      "tbody tr:nth-child(2) td": entries.map(({ topic = "" }) => ({ textContent: topic })),
     })[selector],
   };
   return { querySelector: () => table };
 }
+
+test("word cloud ranks recorded topic words and filters filler and missing topics", () => {
+  const lectures = readAttendanceLectures(lecturePanel([
+    { date: "05-Jan-2026", status: "P", topic: "Graphs, and TREES" },
+    { date: "12-Jan-2026", status: "A", topic: "Graphs in C++ and C#" },
+    { date: "19-Jan-2026", status: "?", topic: "Not available" },
+    { date: "26-Jan-2026", status: "P", topic: "—" },
+    { date: "02-Feb-2026", status: "P", topic: "GRAPHs and café (2026)" },
+  ]));
+  assert.deepEqual(countTopicWords(lectures), [
+    ["graphs", 3], ["c#", 1], ["c++", 1], ["café", 1], ["trees", 1],
+  ]);
+  assert.deepEqual(countTopicWords([{ topic: "N/A" }, { topic: "and the" }, { topic: "" }]), []);
+});
 
 test("the shared lecture reader preserves session times for calendar streaks", () => {
   const lectures = readAttendanceLectures(lecturePanel([
@@ -35,7 +50,7 @@ test("the shared lecture reader preserves session times for calendar streaks", (
   ]));
   assert.deepEqual(lectures.map(({ startTime }) => startTime), [780, 540, null]);
   assert.deepEqual(calculateStreaks([lectures.slice(0, 2), lectures.slice(2)]), {
-    current: 1, longest: 1,
+    current: 1, longest: 1, longestClasses: [lectures[2]],
   });
   const weeks = getWeeklyAttendance(lectures);
   assert.equal(weeks[0].week, 2924);
